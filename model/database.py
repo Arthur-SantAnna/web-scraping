@@ -32,7 +32,16 @@ class DatabaseManager:
                     FOREIGN KEY (produto_id) REFERENCES produtos (id)
                 )
             """)
-
+    def novo_produto(self, produto: Produto):
+        try:
+            with self.connection:
+                cursor = self.connection.cursor()
+                cursor.execute("INSERT INTO produtos (titulo, preco, preco_alvo) VALUES (?, ?, ?)", (produto.titulo, produto.preco, produto.preco_alvo))
+                produto_id = cursor.lastrowid
+                self.salvar_preco(produto_id, produto.preco)
+        except Exception as e:
+            print(f"Erro ao inserir produto no banco de dados: {e}")
+        
     def salvar_produto(self, produto: Produto):
         with self.connection:
             cursor = self.connection.cursor()
