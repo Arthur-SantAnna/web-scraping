@@ -1,11 +1,10 @@
 from controller.amazon import Amazon
 from controller.kabum import Kabum
-from web_driver_config import WebDriverConfig
 from model.database import DatabaseManager
 
 
 def analise_de_precos(produtos):
-    # Analisa os precos e seus comportamentos
+    # Analisa os preços e seus comportamentos
     db_manager = DatabaseManager()
 
     # Busca o menor preço do dia
@@ -21,29 +20,19 @@ def main():
     # Inicializa uma lista vazia de produtos
     produtos = []
 
-    # Configura o WebDriver
-    driver = WebDriverConfig.config_chromedriver()
-    try:
-        # Cria uma instância da classe Amazon
-        amazon_scraper = Amazon(driver)
-        # Inicia o scraping de produtos da Amazon
-        amazon_scraper.scrape_products()
-        # Adiciona os produtos da Amazon à lista de produtos
-        produtos += amazon_scraper.produtos_analisados() or []
+    # Cria uma instância da classe Amazon
+    amazon_scraper = Amazon()
+    # Inicia o scraping de produtos da Amazon
+    amazon_scraper.scrape_products()
+    # Adiciona os produtos da Amazon à lista de produtos
+    produtos += amazon_scraper.produtos_analisados() or []
 
-        # Configura novamente o WebDriver para Kabum (opcional se necessário)
-        driver = WebDriverConfig.config_chromedriver()
-
-        # Cria uma instância da classe Kabum
-        kabum_scraper = Kabum(driver)
-        # Inicia o scraping de produtos na Kabum
-        kabum_scraper.scrape_products()
-        # Adiciona os produtos da Kabum à lista de produtos
-        produtos += kabum_scraper.produtos_analisados() or []
-
-    finally:
-        # Fecha o WebDriver
-        driver.quit()
+    # Cria uma instância da classe Kabum
+    kabum_scraper = Kabum()
+    # Inicia o scraping de produtos na Kabum
+    kabum_scraper.scrape_products()
+    # Adiciona os produtos da Kabum à lista de produtos
+    produtos += kabum_scraper.produtos_analisados() or []
 
     # Salva os produtos no banco de dados
     if produtos:
