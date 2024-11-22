@@ -14,57 +14,75 @@ class Amazon:
         self.produtos = []
 
     def scrape_products(self):
+        """Realiza a raspagem de produtos a partir dos links fornecidos."""
         for url in links_amazon:
-            product_info = self.fetch_product_info(url)
+            product_info = self._fetch_product_info(url)
             if product_info:
                 self.produtos.append(product_info)
-                print(Fore.YELLOW + f'{product_info}' + Style.RESET_ALL)
+                self._log_success(product_info)
 
-    def fetch_product_info(self, url):
-        # Faz uma requisição para pegar o conteúdo da página
-        response = requests.get(url)
-
-        if response.status_code != 200:
-            print(Fore.RED + f"Erro ao acessar {url}: Código de status {response.status_code}" + Style.RESET_ALL)
+    def _fetch_product_info(self, url):
+        """Busca informações do produto a partir de uma URL."""
+        response = self._make_request(url)
+        if not response:
             return None
 
-        # Usa BeautifulSoup para analisar o HTML
         soup = BeautifulSoup(response.content, 'html.parser')
+        title = self._extract_text(soup, 'span', {'id': 'productTitle'}, "título", url)
+        price = self._extract_price(soup, 'span', {'id': 'priceblock_ourprice'}, url)
 
+        if title and price is not None:
+            return Produto(titulo=title, preco=price)
+        return None
+
+    def _make_request(self, url):
+        """Faz a requisição HTTP para obter o conteúdo da página."""
         try:
-            # Pega o título do produto
-            title = soup.find('span', {'id': 'productTitle'}).get_text(strip=True)
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            return response
+        except requests.RequestException as e:
+            print(Fore.RED + f"Erro ao acessar {url}: {e}" + Style.RESET_ALL)
+            return None
+
+    def _extract_text(self, soup, tag, attrs, field_name, url):
+        """Extrai texto de um elemento HTML, com tratamento de erros."""
+        try:
+            return soup.find(tag, attrs).get_text(strip=True)
         except AttributeError:
-            print(Fore.RED + f"Erro ao encontrar título no produto {url}" + Style.RESET_ALL)
+            print(Fore.RED + f"Erro ao encontrar {field_name} no produto {url}" + Style.RESET_ALL)
+            return None
+
+    def _extract_price(self, soup, tag, attrs, url):
+        """Extrai e converte o preço do produto."""
+        price_str = self._extract_text(soup, tag, attrs, "preço", url)
+        if not price_str:
             return None
 
         try:
-            # Pega o preço do produto
-            price_str = soup.find('span', {'id': 'priceblock_ourprice'}).get_text(strip=True)
-        except AttributeError:
-            print(Fore.RED + f"Erro ao encontrar preço no produto {url}" + Style.RESET_ALL)
-            return None
-
-        try:
-            # Limpeza e conversão do preço
             price_str = price_str.replace('R$', '').replace('.', '').replace(',', '.').strip()
-            price = float(price_str)
+            return float(price_str)
         except ValueError:
             print(Fore.RED + f"Erro ao converter preço do produto {url}" + Style.RESET_ALL)
             return None
 
-        return Produto(titulo=title, preco=price)
-
-    # Exibe a lista de produtos analisados
     def listar_produtos(self):
+        """Exibe a lista de produtos analisados."""
+        if not self.produtos:
+            print(Fore.YELLOW + "Nenhum produto foi analisado ainda." + Style.RESET_ALL)
+            return
+
         print("\nLista de produtos analisados:")
         for produto in self.produtos:
-            print(Fore.BLUE + f'Name: {produto.titulo}\nR$:{produto.preco}\n' + Style.RESET_ALL)
+            print(Fore.BLUE + f"Name: {produto.titulo}\nR$: {produto.preco:.2f}\n" + Style.RESET_ALL)
 
-    # Retorna a lista de produtos analisados
     def produtos_analisados(self):
+        """Retorna a lista de produtos analisados."""
         if not self.produtos:
-            print('A lista de produtos está vazia.')
-            return False
-        else:
-            return self.produtos
+            print(Fore.YELLOW + "A lista de produtos está vazia." + Style.RESET_ALL)
+            return []
+        return self.produtos
+
+    def _log_success(self, produto):
+        """Loga um produto analisado com sucesso."""
+        print(Fore.YELLOW + f"Produto analisado: {produto}" + Style.RESET_ALL)

@@ -1,48 +1,63 @@
-from controller.amazon import Amazon
-from controller.kabum import Kabum
+from scraping.amazon import Amazon
+from scraping.kabum import Kabum
 from model.database import DatabaseManager
 
 
-def analise_de_precos(produtos):
-    # Analisa os preços e seus comportamentos
+def realizar_scraping():
+    """
+    Realiza o scraping de produtos de todos os sites disponíveis.
+    """
+    scrapers = [Amazon(), Kabum()]
+    produtos = []
+
+    for scraper in scrapers:
+        scraper.scrape_products()
+        produtos += scraper.produtos_analisados() or []
+
+    return produtos
+
+
+def salvar_produtos_no_banco(produtos):
+    """
+    Salva os produtos extraídos no banco de dados.
+    """
+    if not produtos:
+        print("Nenhum produto para salvar no banco de dados.")
+        return
+
     db_manager = DatabaseManager()
+    for produto in produtos:
+        db_manager.salvar_produto(produto)
+    db_manager.fechar()
 
-    # Busca o menor preço do dia
+
+def analise_de_precos(produtos):
+    """
+    Analisa os preços e verifica comportamentos no banco de dados.
+    """
+    if not produtos:
+        print("Nenhum produto disponível para análise.")
+        return
+
+    db_manager = DatabaseManager()
     db_manager.buscar_menor_preco_dia(produtos)
-
-    # Verifica se algum produto analisado atingiu o preço alvo
     db_manager.executa_verificacao_de_preco_alvo(produtos)
-
     db_manager.fechar()
 
 
 def main():
-    # Inicializa uma lista vazia de produtos
-    produtos = []
-
-    # Cria uma instância da classe Amazon
-    amazon_scraper = Amazon()
-    # Inicia o scraping de produtos da Amazon
-    amazon_scraper.scrape_products()
-    # Adiciona os produtos da Amazon à lista de produtos
-    produtos += amazon_scraper.produtos_analisados() or []
-
-    # Cria uma instância da classe Kabum
-    kabum_scraper = Kabum()
-    # Inicia o scraping de produtos na Kabum
-    kabum_scraper.scrape_products()
-    # Adiciona os produtos da Kabum à lista de produtos
-    produtos += kabum_scraper.produtos_analisados() or []
+    """
+    Função principal do programa.
+    """
+    # Realiza o scraping de produtos
+    produtos = realizar_scraping()
 
     # Salva os produtos no banco de dados
-    if produtos:
-        db_manager = DatabaseManager()
-        for produto in produtos:
-            db_manager.salvar_produto(produto)
-        db_manager.fechar()
+    salvar_produtos_no_banco(produtos)
 
+    # Realiza a análise de preços
     analise_de_precos(produtos)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
