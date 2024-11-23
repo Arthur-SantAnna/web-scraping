@@ -1,8 +1,8 @@
 import sqlite3
 from datetime import datetime, date
-from model.produto import Produto
+from models.produto import Produto
 from colorama import Fore, Style, init
-from enviar_email import enviar_email
+from utils.enviar_email import enviar_email
 
 
 # Inicializa o colorama
